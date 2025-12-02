@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>无尽迷域 - 移动端助手</title>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #2b6cb0;
+            --accent-color: #e53e3e;
+            --heal-color: #38a169;
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --text-main: #2d3748;
+            --text-sub: #718096;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 12px; /* 移动端边距 */
+            padding-bottom: 80px; /* 为悬浮按钮留空间 */
+            color: var(--text-main);
+        }
+
+        /* --- 顶部控制栏 --- */
+        .controls {
+            background: white;
+            padding: 12px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            margin-bottom: 15px;
+            position: sticky;
+            top: 0;
+            z-index: 90;
+        }
+
+        .status-bar {
+            font-size: 0.85em;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-group {
+            flex: 1;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.75em;
+            color: var(--text-sub);
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        select, input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 16px; /* 防止iOS缩放 */
+            background: #f8fafc;
+            appearance: none; /* 移除原生样式 */
+        }
+
+        /* 文件上传按钮美化 */
+        .file-upload-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        
+        .file-upload-wrapper input[type=file] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+        
+        .btn-upload {
+            display: block;
+            background: white;
+            border: 1px dashed var(--primary-color);
+            color: var(--primary-color);
+            padding: 10px;
+            text-align: center;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        /* --- 卡片区域 --- */
+        .cards-area {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        .card.boss-card {
+            border: 2px solid var(--accent-color);
+            background: #fffcfc;
+        }
+        
+        .card.boss-card::after {
+            content: "BOSS";
+            position: absolute;
+            top: 10px;
+            right: -20px;
+            background: var(--accent-color);
+            color: white;
+            font-size: 0.7em;
+            padding: 2px 25px;
+            transform: rotate(45deg);
+            box-shadow: 0 2px 2px rgba(0,0,0,0.2);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            padding-right: 20px; /* 避免遮挡BOSS标签 */
+        }
+
+        .card-title {
+            font-size: 1.25em;
+            font-weight: 800;
+            color: #1a202c;
+        }
+
+        .card-meta {
+            font-size: 0.8em;
+            color: var(--text-sub);
+            margin-top: 2px;
+            display: flex;
+            gap: 8px;
+        }
+        .meta-tag { background: #edf2f7; padding: 2px 6px; border-radius: 4px; }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #edf2f7;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            color: #718096;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+        }
+        .boss-card .close-btn { right: auto; left: 10px; top: -5px; opacity: 0; pointer-events: none;} /* Boss卡不建议轻易删除，或调整位置 */
+        .boss-card .close-btn { /* 修正：还是放在左上角方便删除 */
+            left: unset; right: 10px; top: 40px; opacity: 1; pointer-events: auto;
+        }
+
+        /* 属性网格 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+            background: #f7fafc;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .stat-item { display: flex; flex-direction: column; }
+        .stat-label { font-size: 0.7em; color: var(--text-sub); margin-bottom: 2px; }
+        .stat-value { font-size: 1.1em; font-weight: 800; color: var(--text-main); }
+
+        /* HP 控制条 */
+        .hp-control {
+            background: #fff5f5;
+            border: 1px solid #fed7d7;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 12px;
+        }
+
+        .hp-display {
+            text-align: center;
+            font-size: 1.4em;
+            font-weight: 800;
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+
+        .hp-actions {
+            display: flex;
+            gap: 8px;
+            height: 44px; /* 增大触控高度 */
+        }
+
+        .hp-input {
+            width: 50px !important;
+            text-align: center;
+            font-weight: bold;
+            padding: 0;
+            border-color: #cbd5e0;
+        }
+
+        .hp-btn {
+            flex: 1;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 1em;
+            color: white;
+            box-shadow: 0 2px 2px rgba(0,0,0,0.1);
+            active: transform scale(0.96);
+        }
+        .hp-btn.damage { background: var(--accent-color); }
+        .hp-btn.heal { background: var(--heal-color); }
+
+        /* 特效文本 */
+        .effect-text {
+            font-size: 0.9em;
+            line-height: 1.5;
+            color: #4a5568;
+            background: #fffff0;
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 3px solid #ecc94b;
+        }
+
+        /* --- 底部抽屉 (Monster Selector) --- */
+        .fab-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 30px;
+            z-index: 200;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .fab-btn:active { transform: scale(0.9); }
+
+        .drawer-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 299;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .drawer-overlay.active { display: block; opacity: 1; }
+
+        .bottom-drawer {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            background: white;
+            z-index: 300;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 -4px 10px rgba(0,0,0,0.1);
+        }
+        .bottom-drawer.active { transform: translateY(0); }
+
+        .drawer-header {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            text-align: center;
+            font-weight: bold;
+            color: var(--text-sub);
+        }
+
+        .drawer-content {
+            overflow-y: auto;
+            padding: 15px;
+            /* iOS 滚动优化 */
+            -webkit-overflow-scrolling: touch; 
+        }
+
+        .monster-list-btn {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #f7fafc;
+            border: 1px solid #edf2f7;
+            border-radius: 8px;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1rem;
+        }
+        .monster-list-btn:active { background: #e2e8f0; }
+        
+        .tag { font-size: 0.75em; padding: 2px 6px; border-radius: 4px; color: white; }
+        .tag-boss { background: var(--accent-color); }
+        .tag-mob { background: #718096; }
+
+        .empty-state {
+            text-align: center;
+            color: #a0aec0;
+            margin-top: 50px;
+            padding: 20px;
+        }
+        
+        .status-success { color: #38a169; }
+        .status-error { color: #e53e3e; }
+    </style>
+</head>
+<body>
+
+<div class="controls">
+    <div class="file-upload-wrapper" id="uploadWrapper">
+        <label class="btn-upload">
+            📂 点击上传 Excel 文件
+            <input type="file" id="fileUpload" accept=".xlsx, .xls" />
+        </label>
+    </div>
+
+    <div class="status-bar">
+        <span id="statusMessage" style="color:#718096">等待加载...</span>
+    </div>
+
+    <div class="control-row">
+        <div class="input-group" style="flex: 2;">
+            <label>当前区域 (副本)</label>
+            <select id="dungeonSelect" onchange="renderMonsterList()">
+                <option value="">(无数据)</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>怪物等级</label>
+            <input type="number" id="levelInput" value="1" min="1" onchange="updateAllCards()">
+        </div>
+    </div>
+</div>
+
+<div class="cards-area" id="cardsArea">
+    <div class="empty-state">
+        <p>点击右下角 + 号添加怪物</p>
+    </div>
+</div>
+
+<button class="fab-btn" onclick="toggleDrawer(true)">+</button>
+
+<div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer(false)"></div>
+<div class="bottom-drawer" id="bottomDrawer">
+    <div class="drawer-header">选择怪物 (点击添加)</div>
+    <div class="drawer-content" id="monsterList">
+        <div style="text-align:center; padding:20px; color:#aaa;">请先加载文件数据</div>
+    </div>
+</div>
+
+<script>
+    let rawData = {};
+    let cardIdCounter = 0;
+    let activeCards = {};
+
+    // 初始化
+    document.addEventListener("DOMContentLoaded", () => {
+        autoLoadFile(); // 尝试自动加载
+    });
+
+    document.getElementById('fileUpload').addEventListener('change', handleFileSelect, false);
+
+    // 尝试自动读取 "无尽迷域.xlsx"
+    async function autoLoadFile() {
+        const statusEl = document.getElementById('statusMessage');
+        statusEl.innerText = "正在尝试自动加载...";
+        
+        try {
+            const response = await fetch('无尽迷域.xlsx');
+            if (!response.ok) throw new Error("未找到默认文件");
+            
+            const arrayBuffer = await response.arrayBuffer();
+            const workbook = XLSX.read(new Uint8Array(arrayBuffer), {type: 'array'});
+            
+            processWorkbook(workbook);
+            
+            statusEl.className = 'status-success';
+            statusEl.innerText = "已自动加载: 无尽迷域.xlsx";
+            document.getElementById('uploadWrapper').style.display = 'none'; // 成功则隐藏上传按钮
+        } catch (err) {
+            console.log("自动加载失败 (正常现象，如果是首次打开):", err);
+            statusEl.innerText = "请上传数据文件";
+            statusEl.className = '';
+        }
+    }
+
+    function handleFileSelect(evt) {
+        const file = evt.target.files[0];
+        if (!file) return;
+
+        const statusEl = document.getElementById('statusMessage');
+        statusEl.innerText = `读取中: ${file.name}...`;
+
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                processWorkbook(workbook);
+                statusEl.className = 'status-success';
+                statusEl.innerText = `加载成功`;
+                document.getElementById('uploadWrapper').style.display = 'none';
+            } catch (err) {
+                console.error(err);
+                statusEl.className = 'status-error';
+                statusEl.innerText = `错误: ${err.message}`;
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function processWorkbook(workbook) {
+        rawData = {};
+        let loadedSheets = 0;
+
+        workbook.SheetNames.forEach(sheetName => {
+            const worksheet = workbook.Sheets[sheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+            if (jsonData.length > 0) {
+                const headers = Object.keys(jsonData[0]);
+                const requiredHeaders = ['Name', 'Type', 'Agility', 'Retention', 'Effect'];
+                const isValidSheet = requiredHeaders.filter(h => headers.includes(h)).length >= 3;
+
+                if (isValidSheet) {
+                    const monsters = jsonData.filter(row => 
+                        row.Type && (row.Type.trim() === '怪物' || row.Type.trim() === '首领')
+                    );
+                    if (monsters.length > 0) {
+                        rawData[sheetName] = monsters;
+                        loadedSheets++;
+                    }
+                }
+            }
+        });
+
+        if (loadedSheets === 0) {
+            alert("文件格式不匹配，未找到有效的怪物数据页。");
+            return;
+        }
+        renderDungeonSelect();
+        renderMonsterList();
+    }
+
+    function renderDungeonSelect() {
+        const select = document.getElementById('dungeonSelect');
+        select.innerHTML = '';
+        const dungeons = Object.keys(rawData);
+        
+        dungeons.forEach(key => {
+            const option = document.createElement('option');
+            option.value = key;
+            option.text = key;
+            select.appendChild(option);
+        });
+        
+        if(dungeons.length > 0) renderMonsterList();
+    }
+
+    function renderMonsterList() {
+        const dungeonName = document.getElementById('dungeonSelect').value;
+        const listDiv = document.getElementById('monsterList');
+        listDiv.innerHTML = '';
+        
+        if (!dungeonName || !rawData[dungeonName]) {
+            listDiv.innerHTML = '<div style="text-align:center; padding:20px;">无数据</div>'; return;
+        }
+
+        const seenNames = new Set();
+
+        rawData[dungeonName].forEach(m => {
+            const name = m.Name || '未知';
+            if (seenNames.has(name)) return;
+            seenNames.add(name);
+
+            const btn = document.createElement('button');
+            btn.className = 'monster-list-btn';
+            const type = m.Type ? m.Type.trim() : '怪物';
+            const tagClass = type === '首领' ? 'tag-boss' : 'tag-mob';
+            
+            btn.innerHTML = `
+                <span style="font-weight:600">${name}</span>
+                <span class="tag ${tagClass}">${type}</span>
+            `;
+            btn.onclick = () => {
+                addCard(dungeonName, name);
+                toggleDrawer(false); 
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+            listDiv.appendChild(btn);
+        });
+    }
+
+    function toggleDrawer(show) {
+        const drawer = document.getElementById('bottomDrawer');
+        const overlay = document.getElementById('drawerOverlay');
+        if (show) {
+            drawer.classList.add('active');
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        } else {
+            drawer.classList.remove('active');
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    }
+
+    function parseEffect(effectStr, level) {
+        if (!effectStr) return { atk: '-', range: '-', move: '-', hp: '-', desc: '无' };
+
+        const calc = (formula) => {
+            if (!formula) return '-';
+            let strFormula = String(formula);
+            strFormula = strFormula.replace(/（/g, '(').replace(/）/g, ')');
+            let safeFormula = strFormula.replace(/(\d)X/gi, '$1*' + level).replace(/X/gi, level);
+            try { return Math.floor(Function('"use strict";return (' + safeFormula + ')')()); } 
+            catch (e) { return formula; }
+        };
+
+        const extract = (key) => {
+            const regex = new RegExp(key + "[:：]?\\s*([0-9X\/\\*\\.\\+\\-\(\)]+)", "i");
+            const match = effectStr.match(regex);
+            return match ? match[1] : null;
+        };
+
+        const atk = calc(extract("攻击力"));
+        const range = calc(extract("射程"));
+        const move = calc(extract("移动力"));
+        const hp = calc(extract("最大生命"));
+
+        let desc = effectStr;
+        desc = desc.replace(/(?:攻击力|射程|移动力|最大生命)[:：]?\s*[0-9X\*\/\.\+\-\(\)]+\s*[，,；;。]?\s*/gi, '');
+        desc = desc.replace(/。/g, '<br>'); 
+
+        if (!desc.trim()) desc = "";
+
+        return {
+            atk, range, move, hp,
+            rawHp: extract("最大生命"),
+            desc
+        };
+    }
+
+    // --- 新增：排序功能 ---
+    function sortCards() {
+        const container = document.getElementById('cardsArea');
+        // 获取所有现存的卡片元素
+        const cards = Array.from(container.querySelectorAll('.card'));
+
+        cards.sort((a, b) => {
+            const dataA = activeCards[a.id];
+            const dataB = activeCards[b.id];
+            
+            if (!dataA) return 1;
+            if (!dataB) return -1;
+
+            // 获取敏捷 (转换为数字，如果无法转换则默认为0)
+            const agiA = parseFloat(dataA.baseData.Agility) || 0;
+            const agiB = parseFloat(dataB.baseData.Agility) || 0;
+
+            // 降序排列：B - A
+            if (agiB !== agiA) {
+                return agiB - agiA;
+            }
+            // 如果敏捷相同，保持原有的创建顺序（通过ID编号判断）
+            return 0;
+        });
+
+        // 重新按照顺序将卡片插入容器（这会移动DOM元素）
+        cards.forEach(card => container.appendChild(card));
+    }
+
+    function addCard(dungeonName, monsterName) {
+        const monster = rawData[dungeonName].find(m => m.Name === monsterName);
+        if (!monster) return;
+
+        const level = parseInt(document.getElementById('levelInput').value) || 1;
+        const stats = parseEffect(monster.Effect, level);
+        const cardId = 'card-' + cardIdCounter++;
+        
+        activeCards[cardId] = {
+            id: cardId,
+            baseData: monster,
+            currentHp: stats.hp !== '-' ? stats.hp : 0
+        };
+
+        renderCardDOM(cardId);
+        
+        // 添加后立即排序
+        sortCards();
+        
+        const emptyState = document.querySelector('.empty-state');
+        if (emptyState) emptyState.style.display = 'none';
+    }
+
+    function renderCardDOM(cardId) {
+        const data = activeCards[cardId];
+        const m = data.baseData;
+        const level = parseInt(document.getElementById('levelInput').value) || 1;
+        const stats = parseEffect(m.Effect, level);
+
+        let cardDiv = document.getElementById(cardId);
+        if (!cardDiv) {
+            cardDiv = document.createElement('div');
+            cardDiv.id = cardId;
+            const type = m.Type ? m.Type.trim() : '怪物';
+            cardDiv.className = type === '首领' ? 'card boss-card' : 'card';
+            
+            const container = document.getElementById('cardsArea');
+            // 默认插入逻辑，稍后会被sortCards覆盖
+            if (container.firstChild) {
+                container.insertBefore(cardDiv, container.firstChild);
+            } else {
+                container.appendChild(cardDiv);
+            }
+        }
+
+        const existingInput = document.getElementById(`${cardId}-hp-input`);
+        const inputValue = existingInput ? existingInput.value : 1;
+
+        cardDiv.innerHTML = `
+            <div class="card-header">
+                <div>
+                    <div class="card-title">${m.Name}</div>
+                    <div class="card-meta">
+                        <span class="meta-tag">敏捷: ${m.Agility || '-'}</span>
+                        <span class="meta-tag">滞留: ${m.Retention || '0'}</span>
+                    </div>
+                </div>
+                <button class="close-btn" onclick="removeCard('${cardId}')">×</button>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-item"><span class="stat-label">攻击</span> <span class="stat-value" style="color:#e53e3e">${stats.atk}</span></div>
+                <div class="stat-item"><span class="stat-label">射程</span> <span class="stat-value">${stats.range}</span></div>
+                <div class="stat-item"><span class="stat-label">移动</span> <span class="stat-value">${stats.move}</span></div>
+                <div class="stat-item"><span class="stat-label">生命上限</span> <span class="stat-value">${stats.hp}</span></div>
+            </div>
+
+            <div class="hp-control">
+                <div class="hp-display">
+                    <span id="${cardId}-hp-val" style="${data.currentHp <= 0 ? 'color:red' : ''}">${data.currentHp}</span> 
+                    <span style="font-size:0.6em; color:#aaa">/ ${stats.hp}</span>
+                </div>
+                <div class="hp-actions">
+                    <button class="hp-btn damage" onclick="applyHpChange('${cardId}', -1)">-</button>
+                    <input type="number" id="${cardId}-hp-input" value="${inputValue}" class="hp-input" min="1" onclick="this.select()">
+                    <button class="hp-btn heal" onclick="applyHpChange('${cardId}', 1)">+</button>
+                </div>
+            </div>
+
+            <div class="effect-text">
+                <div style="font-weight:bold; margin-bottom:4px; font-size:0.85em; color:#d69e2e">特性效果</div>
+                ${stats.desc}
+            </div>
+        `;
+    }
+
+    // --- 修改：增加上限限制 ---
+    function applyHpChange(cardId, multiplier) {
+        if (!activeCards[cardId]) return;
+        
+        // 1. 重新计算当前等级下的 Max HP
+        const m = activeCards[cardId].baseData;
+        const level = parseInt(document.getElementById('levelInput').value) || 1;
+        const stats = parseEffect(m.Effect, level);
+        // 如果解析出是数字，则作为上限，否则视为无穷大
+        const maxHp = (typeof stats.hp === 'number') ? stats.hp : 999999;
+
+        const inputEl = document.getElementById(`${cardId}-hp-input`);
+        const val = parseInt(inputEl.value) || 0;
+        const delta = val * multiplier;
+        
+        let newHp = activeCards[cardId].currentHp + delta;
+        
+        // 2. 限制不超过上限
+        if (newHp > maxHp) {
+            newHp = maxHp;
+        }
+
+        activeCards[cardId].currentHp = newHp;
+        
+        const display = document.getElementById(cardId + '-hp-val');
+        if(display) {
+            display.innerText = activeCards[cardId].currentHp;
+            display.style.color = activeCards[cardId].currentHp <= 0 ? 'red' : '#2d3748';
+        }
+        
+        if (window.navigator && window.navigator.vibrate) {
+            window.navigator.vibrate(30);
+        }
+    }
+
+    function updateAllCards() {
+        Object.keys(activeCards).forEach(id => {
+            // 在更新显示前，检查等级变化是否导致当前血量超过新上限
+            // 获取新上限
+            const data = activeCards[id];
+            const level = parseInt(document.getElementById('levelInput').value) || 1;
+            const stats = parseEffect(data.baseData.Effect, level);
+            
+            if (typeof stats.hp === 'number' && data.currentHp > stats.hp) {
+                data.currentHp = stats.hp;
+            }
+
+            renderCardDOM(id);
+        });
+        
+        // 更新完所有卡片数据和DOM后，重新排序
+        sortCards();
+    }
+
+    function removeCard(cardId) {
+        delete activeCards[cardId];
+        const el = document.getElementById(cardId);
+        if (el) {
+            el.style.transform = 'translateX(100%)';
+            el.style.opacity = '0';
+            setTimeout(() => {
+                el.remove();
+                if (Object.keys(activeCards).length === 0) {
+                    const empty = document.querySelector('.empty-state');
+                    if(empty) empty.style.display = 'block';
+                }
+            }, 200);
+        }
+    }
+</script>
+</body>
+</html>
