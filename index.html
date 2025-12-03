@@ -20,12 +20,17 @@
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+        /* 全局禁用按钮/输入的双击缩放 */
+        button, input, select, .btn-upload, .monster-list-btn, .fab-btn, .close-btn {
+            touch-action: manipulation; 
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             margin: 0;
-            padding: 12px; /* 移动端边距 */
-            padding-bottom: 80px; /* 为悬浮按钮留空间 */
+            padding: 12px;
+            padding-bottom: 80px;
             color: var(--text-main);
         }
 
@@ -49,13 +54,23 @@
             align-items: center;
         }
 
+        /* 布局控制行 */
         .control-row {
             display: flex;
-            gap: 10px;
+            gap: 8px; /* 间距缩小 */
+            align-items: flex-end;
         }
 
-        .input-group {
+        /* 左侧：占据剩余空间 */
+        .group-main {
             flex: 1;
+            min-width: 0; /* 防止内容撑破 */
+        }
+
+        /* 右侧：固定窄宽度 */
+        .group-side {
+            flex: 0 0 100px; /* 固定为100px宽 */
+            width: 100px;
         }
 
         .input-group label {
@@ -64,19 +79,74 @@
             color: var(--text-sub);
             margin-bottom: 4px;
             font-weight: 600;
+            white-space: nowrap; /* 防止换行 */
         }
 
-        select, input[type="number"], input[type="text"] {
+        select, input[type="text"] {
             width: 100%;
             padding: 10px;
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            font-size: 16px; /* 防止iOS缩放 */
+            font-size: 16px;
             background: #f8fafc;
-            appearance: none; /* 移除原生样式 */
+            appearance: none;
+            height: 40px; /* 稍微调低高度 */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        /* 文件上传按钮美化 */
+        /* --- 等级控制组合样式 --- */
+        .level-control-wrapper {
+            display: flex;
+            align-items: center;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: #f8fafc;
+            overflow: hidden;
+            height: 40px; /* 稍微调低高度 */
+            width: 100%; 
+        }
+
+        .level-btn {
+            width: 30px; /* 按钮变窄 */
+            height: 100%;
+            background: #e2e8f0;
+            border: none;
+            font-weight: bold;
+            font-size: 1.2em;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+
+        .level-btn:active { background: #cbd5e0; }
+
+        .level-control-wrapper input[type="number"] {
+            border: none;
+            text-align: center;
+            background: transparent;
+            font-weight: 800;
+            flex: 1;
+            height: 100%;
+            padding: 0;
+            border-radius: 0;
+            font-size: 1.1em;
+            -moz-appearance: textfield;
+            min-width: 0;
+        }
+
+        .level-control-wrapper input::-webkit-outer-spin-button,
+        .level-control-wrapper input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* 文件上传按钮 */
         .file-upload-wrapper {
             position: relative;
             overflow: hidden;
@@ -146,7 +216,7 @@
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 12px;
-            padding-right: 20px; /* 避免遮挡BOSS标签 */
+            padding-right: 20px;
         }
 
         .card-title {
@@ -179,10 +249,10 @@
             align-items: center;
             justify-content: center;
             z-index: 5;
+            cursor: pointer;
         }
-        .boss-card .close-btn { right: auto; left: 10px; top: -5px; opacity: 0; pointer-events: none;} /* Boss卡不建议轻易删除，或调整位置 */
-        .boss-card .close-btn { /* 修正：还是放在左上角方便删除 */
-            left: unset; right: 10px; top: 40px; opacity: 1; pointer-events: auto;
+        .boss-card .close-btn { 
+            left: unset; right: 10px; top: 40px; 
         }
 
         /* 属性网格 */
@@ -221,7 +291,7 @@
         .hp-actions {
             display: flex;
             gap: 8px;
-            height: 44px; /* 增大触控高度 */
+            height: 44px;
         }
 
         .hp-input {
@@ -230,6 +300,7 @@
             font-weight: bold;
             padding: 0;
             border-color: #cbd5e0;
+            height: 100%;
         }
 
         .hp-btn {
@@ -240,8 +311,9 @@
             font-size: 1em;
             color: white;
             box-shadow: 0 2px 2px rgba(0,0,0,0.1);
-            active: transform scale(0.96);
+            cursor: pointer;
         }
+        .hp-btn:active { transform: scale(0.98); }
         .hp-btn.damage { background: var(--accent-color); }
         .hp-btn.heal { background: var(--heal-color); }
 
@@ -256,7 +328,7 @@
             border-left: 3px solid #ecc94b;
         }
 
-        /* --- 底部抽屉 (Monster Selector) --- */
+        /* --- 底部抽屉 --- */
         .fab-btn {
             position: fixed;
             bottom: 20px;
@@ -316,7 +388,6 @@
         .drawer-content {
             overflow-y: auto;
             padding: 15px;
-            /* iOS 滚动优化 */
             -webkit-overflow-scrolling: touch; 
         }
 
@@ -332,6 +403,7 @@
             justify-content: space-between;
             align-items: center;
             font-size: 1rem;
+            cursor: pointer;
         }
         .monster-list-btn:active { background: #e2e8f0; }
         
@@ -365,15 +437,20 @@
     </div>
 
     <div class="control-row">
-        <div class="input-group" style="flex: 2;">
-            <label>当前区域 (副本)</label>
+        <div class="input-group group-main">
+            <label>当前区域</label>
             <select id="dungeonSelect" onchange="renderMonsterList()">
                 <option value="">(无数据)</option>
             </select>
         </div>
-        <div class="input-group">
-            <label>怪物等级</label>
-            <input type="number" id="levelInput" value="1" min="1" onchange="updateAllCards()">
+        
+        <div class="input-group group-side">
+            <label>等级</label>
+            <div class="level-control-wrapper">
+                <button class="level-btn" onclick="changeLevel(-1)">-</button>
+                <input type="number" id="levelInput" value="1" min="1" onchange="updateAllCards()">
+                <button class="level-btn" onclick="changeLevel(1)">+</button>
+            </div>
         </div>
     </div>
 </div>
@@ -399,14 +476,12 @@
     let cardIdCounter = 0;
     let activeCards = {};
 
-    // 初始化
     document.addEventListener("DOMContentLoaded", () => {
-        autoLoadFile(); // 尝试自动加载
+        autoLoadFile(); 
     });
 
     document.getElementById('fileUpload').addEventListener('change', handleFileSelect, false);
 
-    // 尝试自动读取 "无尽迷域.xlsx"
     async function autoLoadFile() {
         const statusEl = document.getElementById('statusMessage');
         statusEl.innerText = "正在尝试自动加载...";
@@ -422,9 +497,9 @@
             
             statusEl.className = 'status-success';
             statusEl.innerText = "已自动加载: 无尽迷域.xlsx";
-            document.getElementById('uploadWrapper').style.display = 'none'; // 成功则隐藏上传按钮
+            document.getElementById('uploadWrapper').style.display = 'none'; 
         } catch (err) {
-            console.log("自动加载失败 (正常现象，如果是首次打开):", err);
+            console.log("自动加载失败:", err);
             statusEl.innerText = "请上传数据文件";
             statusEl.className = '';
         }
@@ -588,10 +663,8 @@
         };
     }
 
-    // --- 新增：排序功能 ---
     function sortCards() {
         const container = document.getElementById('cardsArea');
-        // 获取所有现存的卡片元素
         const cards = Array.from(container.querySelectorAll('.card'));
 
         cards.sort((a, b) => {
@@ -601,20 +674,23 @@
             if (!dataA) return 1;
             if (!dataB) return -1;
 
-            // 获取敏捷 (转换为数字，如果无法转换则默认为0)
             const agiA = parseFloat(dataA.baseData.Agility) || 0;
             const agiB = parseFloat(dataB.baseData.Agility) || 0;
 
-            // 降序排列：B - A
-            if (agiB !== agiA) {
-                return agiB - agiA;
-            }
-            // 如果敏捷相同，保持原有的创建顺序（通过ID编号判断）
+            if (agiB !== agiA) return agiB - agiA;
             return 0;
         });
 
-        // 重新按照顺序将卡片插入容器（这会移动DOM元素）
         cards.forEach(card => container.appendChild(card));
+    }
+
+    function changeLevel(delta) {
+        const input = document.getElementById('levelInput');
+        let val = parseInt(input.value) || 1;
+        val += delta;
+        if (val < 1) val = 1;
+        input.value = val;
+        updateAllCards();
     }
 
     function addCard(dungeonName, monsterName) {
@@ -632,8 +708,6 @@
         };
 
         renderCardDOM(cardId);
-        
-        // 添加后立即排序
         sortCards();
         
         const emptyState = document.querySelector('.empty-state');
@@ -654,7 +728,6 @@
             cardDiv.className = type === '首领' ? 'card boss-card' : 'card';
             
             const container = document.getElementById('cardsArea');
-            // 默认插入逻辑，稍后会被sortCards覆盖
             if (container.firstChild) {
                 container.insertBefore(cardDiv, container.firstChild);
             } else {
@@ -703,15 +776,12 @@
         `;
     }
 
-    // --- 修改：增加上限限制 ---
     function applyHpChange(cardId, multiplier) {
         if (!activeCards[cardId]) return;
         
-        // 1. 重新计算当前等级下的 Max HP
         const m = activeCards[cardId].baseData;
         const level = parseInt(document.getElementById('levelInput').value) || 1;
         const stats = parseEffect(m.Effect, level);
-        // 如果解析出是数字，则作为上限，否则视为无穷大
         const maxHp = (typeof stats.hp === 'number') ? stats.hp : 999999;
 
         const inputEl = document.getElementById(`${cardId}-hp-input`);
@@ -719,11 +789,7 @@
         const delta = val * multiplier;
         
         let newHp = activeCards[cardId].currentHp + delta;
-        
-        // 2. 限制不超过上限
-        if (newHp > maxHp) {
-            newHp = maxHp;
-        }
+        if (newHp > maxHp) newHp = maxHp; 
 
         activeCards[cardId].currentHp = newHp;
         
@@ -740,8 +806,6 @@
 
     function updateAllCards() {
         Object.keys(activeCards).forEach(id => {
-            // 在更新显示前，检查等级变化是否导致当前血量超过新上限
-            // 获取新上限
             const data = activeCards[id];
             const level = parseInt(document.getElementById('levelInput').value) || 1;
             const stats = parseEffect(data.baseData.Effect, level);
@@ -752,9 +816,7 @@
 
             renderCardDOM(id);
         });
-        
-        // 更新完所有卡片数据和DOM后，重新排序
-        sortCards();
+        sortCards(); 
     }
 
     function removeCard(cardId) {
@@ -773,5 +835,6 @@
         }
     }
 </script>
+
 </body>
 </html>
