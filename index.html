@@ -61,7 +61,7 @@
             align-items: flex-end;
         }
 
-        /* 左侧：占据剩余空间 */
+        /* 左侧：主要区域，占据剩余所有空间 */
         .group-main {
             flex: 1;
             min-width: 0; /* 防止内容撑破 */
@@ -627,9 +627,11 @@
         }
     }
 
+    // --- 核心修改：修复误删“移动力”描述的Bug ---
     function parseEffect(effectStr, level) {
         if (!effectStr) return { atk: '-', range: '-', move: '-', hp: '-', desc: '无' };
 
+        // 基础数值计算工具
         const calc = (formula) => {
             if (!formula) return '-';
             let strFormula = String(formula);
@@ -650,9 +652,36 @@
         const move = calc(extract("移动力"));
         const hp = calc(extract("最大生命"));
 
+        // 处理描述文本
         let desc = effectStr;
-        desc = desc.replace(/(?:攻击力|射程|移动力|最大生命)[:：]?\s*[0-9X\*\/\.\+\-\(\)]+\s*[，,；;。]?\s*/gi, '');
+
+        // 1. 移除已提取的基础属性文本
+        // 修改策略：不再使用全局替换(g)，而是针对每个属性，只移除“第一个”匹配项。
+        // 这样可以保留后续描述中出现的“移动力+1”或“造成移动力*2伤害”等文本。
+        const statsToRemove = ["攻击力", "射程", "移动力", "最大生命"];
+        statsToRemove.forEach(key => {
+            // 正则：匹配 属性名 + 可选冒号 + 数值公式 + 可选标点
+            const regex = new RegExp(key + "[:：]?\\s*[0-9X\\*\\/\\.\\+\\-\\(\\)]+\\s*[，,；;。]?\\s*", "i");
+            desc = desc.replace(regex, ""); // 仅替换一次
+        });
+        
         desc = desc.replace(/。/g, '<br>'); 
+
+        // 2. 替换描述中的公式（X处理逻辑，保留上一版的优化）
+        desc = desc.replace(/（/g, '(').replace(/）/g, ')');
+        
+        // 查找并计算描述中的数学公式
+        desc = desc.replace(/(?<![a-z])[0-9\+\-\*\/\.\(\)]*X[0-9\+\-\*\/\.\(\)]*(?![a-z])/gi, (match) => {
+            try {
+                let formula = match.replace(/(\d)X/gi, '$1*' + level); 
+                formula = formula.replace(/X/gi, level);
+                formula = formula.replace(/(\d)\(/g, '$1*(');
+                let res = Function('"use strict";return (' + formula + ')')();
+                return Math.floor(res);
+            } catch (e) {
+                return match;
+            }
+        });
 
         if (!desc.trim()) desc = "";
 
